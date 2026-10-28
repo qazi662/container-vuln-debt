@@ -69,7 +69,7 @@ jobs:
           cvd summary | head -40
 
       - name: Upload raw scanner output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: raw-${{ github.run_id }}
           path: data/raw
