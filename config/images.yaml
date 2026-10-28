@@ -86,8 +86,9 @@ apps:
       - {ref: "eclipse-temurin:21-jre-alpine", variant: alpine, roles: [variant]}
       - {ref: "gcr.io/distroless/java21-debian12", variant: distroless, roles: [variant]}
       - {ref: "eclipse-temurin:21.0.5_11-jre", variant: default, roles: [pinned]}
-      # the openjdk official image was deprecated in 2022 but is still pulled widely
-      - {ref: "openjdk:17", variant: default, roles: [eol]}
+      # Temurin 20 was a short term (non LTS) release, unsupported since Sep 2023.
+      # (openjdk:17 was the first choice, but Docker removed the deprecated openjdk image's release tags.)
+      - {ref: "eclipse-temurin:20-jre", variant: default, roles: [eol]}
 
   php:
     tags:
