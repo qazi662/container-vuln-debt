@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# large or regenerable data
+data/sboms/
+data/raw/
+data/cache/
+*.duckdb
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/

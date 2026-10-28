@@ -1,0 +1,35 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "sbom.cdx.json",
+  "ArtifactType": "cyclonedx",
+  "Results": [
+    {
+      "Target": "sbom.cdx.json (debian 12.8)",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": [
+        {"VulnerabilityID": "CVE-2023-4911", "PkgName": "libc6", "InstalledVersion": "2.36-9+deb12u3",
+         "FixedVersion": "2.36-9+deb12u4", "Status": "fixed", "Severity": "HIGH",
+         "PkgIdentifier": {"PURL": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u3?arch=amd64&distro=debian-12.8"}},
+        {"VulnerabilityID": "CVE-2023-4911", "PkgName": "libc6", "InstalledVersion": "2.36-9+deb12u3",
+         "FixedVersion": "2.36-9+deb12u4", "Status": "fixed", "Severity": "HIGH"},
+        {"VulnerabilityID": "CVE-2011-3374", "PkgName": "apt", "InstalledVersion": "2.6.1",
+         "Status": "affected", "Severity": "LOW"},
+        {"VulnerabilityID": "CVE-2022-0563", "PkgName": "util-linux", "InstalledVersion": "2.38.1-5",
+         "Status": "will_not_fix", "Severity": "LOW"},
+        {"VulnerabilityID": "CVE-2024-0000", "PkgName": "zlib1g", "InstalledVersion": "1.2.13",
+         "Status": "not_affected", "Severity": "MEDIUM"}
+      ]
+    },
+    {
+      "Target": "Node.js",
+      "Class": "lang-pkgs",
+      "Type": "node-pkg",
+      "Vulnerabilities": [
+        {"VulnerabilityID": "CVE-2024-21538", "PkgName": "cross-spawn", "InstalledVersion": "7.0.3",
+         "FixedVersion": "7.0.5, 6.0.6", "Status": "fixed", "Severity": "HIGH"}
+      ]
+    },
+    {"Target": "Python", "Class": "lang-pkgs", "Type": "python-pkg"}
+  ]
+}

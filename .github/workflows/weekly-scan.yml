@@ -1,0 +1,84 @@
+name: weekly-scan
+
+on:
+  schedule:
+    - cron: "17 13 * * 1"   # Mondays 13:17 UTC (8:17am Eastern in winter)
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Space separated apps to scan (blank = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-scan
+  cancel-in-progress: false
+
+env:
+  # Before the baseline scan, set these to the latest releases, then leave them frozen for the study:
+  #   https://github.com/anchore/syft/releases  https://github.com/anchore/grype/releases
+  #   https://github.com/aquasecurity/trivy/releases
+  SYFT_VERSION: v1.18.1
+  GRYPE_VERSION: v0.86.1
+  TRIVY_VERSION: v0.58.1
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install scanners (pinned)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin "$SYFT_VERSION"
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin "$GRYPE_VERSION"
+          curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin "$TRIVY_VERSION"
+          syft version && grype version && trivy --version
+
+      - name: Install cvd
+        run: pip install -e .
+
+      - name: Log in to Docker Hub (higher pull limits)
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Restore SBOM cache
+        uses: actions/cache@v4
+        with:
+          path: data/sboms
+          key: sboms-${{ github.run_id }}
+          restore-keys: sboms-
+
+      - name: Run measurement
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          ONLY: ${{ inputs.only }}
+        run: |
+          if [ -n "$ONLY" ]; then cvd run --only $ONLY; else cvd run; fi
+          cvd summary | head -40
+
+      - name: Upload raw scanner output
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-${{ github.run_id }}
+          path: data/raw
+          retention-days: 90
+
+      - name: Commit results
+        run: |
+          git config user.name "cvd-bot"
+          git config user.email "cvd-bot@users.noreply.github.com"
+          git add data/findings data/state
+          git commit -m "scan: $(date -u +%F)" || { echo "nothing to commit"; exit 0; }
+          git push

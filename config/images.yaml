@@ -1,0 +1,119 @@
+# Images and tags to measure.
+#
+# Starter set: 14 apps. Grow to about 40 apps in week 4 (Nov 2 to 6), then FREEZE this file
+# for the rest of the study so weekly snapshots are comparable.
+# Run `cvd check` after every edit: it resolves each tag without pulling and lists any that do not exist.
+#
+# Each tag has:
+#   variant: default | slim | alpine | distroless | chainguard | other
+#   roles:   which research question it feeds (one tag can have several)
+#     variant   RQ2: same app and release line, different base flavor
+#     floating  RQ3: a tag that moves with new releases (node:22, nginx:stable)
+#     pinned    RQ3: an exact release people pin and forget (node:22.11.0)
+#     eol       RQ3: a release line that no longer gets updates (node:18)
+#
+# Version and EOL choices reflect support status in late 2026; verify each EOL claim against
+# endoflife.date before the baseline scan and fix anything `cvd check` flags.
+
+platform: linux/amd64
+
+apps:
+  node:
+    tags:
+      - {ref: "node:22", variant: default, roles: [variant, floating]}
+      - {ref: "node:22-slim", variant: slim, roles: [variant]}
+      - {ref: "node:22-alpine", variant: alpine, roles: [variant]}
+      - {ref: "gcr.io/distroless/nodejs22-debian12", variant: distroless, roles: [variant]}
+      - {ref: "node:22.11.0", variant: default, roles: [pinned]}
+      - {ref: "node:20", variant: default, roles: [eol]}
+      - {ref: "node:18", variant: default, roles: [eol]}
+
+  python:
+    tags:
+      - {ref: "python:3.12", variant: default, roles: [variant, floating]}
+      - {ref: "python:3.12-slim", variant: slim, roles: [variant]}
+      - {ref: "python:3.12-alpine", variant: alpine, roles: [variant]}
+      # distroless python3 tracks Debian's Python (3.11 on debian12): note the version gap in the report
+      - {ref: "gcr.io/distroless/python3-debian12", variant: distroless, roles: [variant]}
+      - {ref: "python:3.12.7", variant: default, roles: [pinned]}
+      - {ref: "python:3.9", variant: default, roles: [eol]}
+      - {ref: "python:3.8", variant: default, roles: [eol]}
+
+  nginx:
+    tags:
+      - {ref: "nginx:stable", variant: default, roles: [variant, floating]}
+      - {ref: "nginx:stable-alpine", variant: alpine, roles: [variant]}
+      - {ref: "nginx:mainline", variant: default, roles: [floating]}
+      - {ref: "nginx:1.26.2", variant: default, roles: [pinned]}
+      - {ref: "nginx:1.24", variant: default, roles: [eol]}
+
+  httpd:
+    tags:
+      - {ref: "httpd:2.4", variant: default, roles: [variant, floating]}
+      - {ref: "httpd:2.4-alpine", variant: alpine, roles: [variant]}
+      - {ref: "httpd:2.4.62", variant: default, roles: [pinned]}
+
+  postgres:
+    tags:
+      - {ref: "postgres:17", variant: default, roles: [variant, floating]}
+      - {ref: "postgres:17-alpine", variant: alpine, roles: [variant]}
+      - {ref: "postgres:17.2", variant: default, roles: [pinned]}
+      - {ref: "postgres:13", variant: default, roles: [eol]}
+      - {ref: "postgres:12", variant: default, roles: [eol]}
+
+  mysql:
+    tags:
+      - {ref: "mysql:8.4", variant: default, roles: [floating]}
+      - {ref: "mysql:8.4.3", variant: default, roles: [pinned]}
+      - {ref: "mysql:5.7", variant: default, roles: [eol]}
+
+  redis:
+    tags:
+      - {ref: "redis:7.4", variant: default, roles: [variant, floating]}
+      - {ref: "redis:7.4-alpine", variant: alpine, roles: [variant]}
+      - {ref: "redis:7.4.1", variant: default, roles: [pinned]}
+      - {ref: "redis:6.2", variant: default, roles: [eol]}
+
+  golang:
+    tags:
+      - {ref: "golang:1.23", variant: default, roles: [variant, floating]}
+      - {ref: "golang:1.23-alpine", variant: alpine, roles: [variant]}
+      - {ref: "golang:1.21", variant: default, roles: [eol]}
+
+  java:
+    tags:
+      - {ref: "eclipse-temurin:21-jre", variant: default, roles: [variant, floating]}
+      - {ref: "eclipse-temurin:21-jre-alpine", variant: alpine, roles: [variant]}
+      - {ref: "gcr.io/distroless/java21-debian12", variant: distroless, roles: [variant]}
+      - {ref: "eclipse-temurin:21.0.5_11-jre", variant: default, roles: [pinned]}
+      # the openjdk official image was deprecated in 2022 but is still pulled widely
+      - {ref: "openjdk:17", variant: default, roles: [eol]}
+
+  php:
+    tags:
+      - {ref: "php:8.3-apache", variant: default, roles: [variant, floating]}
+      - {ref: "php:8.3-fpm-alpine", variant: alpine, roles: [variant]}
+      - {ref: "php:7.4-apache", variant: default, roles: [eol]}
+
+  ruby:
+    tags:
+      - {ref: "ruby:3.3", variant: default, roles: [variant, floating]}
+      - {ref: "ruby:3.3-slim", variant: slim, roles: [variant]}
+      - {ref: "ruby:3.3-alpine", variant: alpine, roles: [variant]}
+      - {ref: "ruby:2.7", variant: default, roles: [eol]}
+
+  debian:
+    tags:
+      - {ref: "debian:bookworm", variant: default, roles: [variant, floating]}
+      - {ref: "debian:bookworm-slim", variant: slim, roles: [variant]}
+      - {ref: "debian:buster", variant: default, roles: [eol]}
+
+  ubuntu:
+    tags:
+      - {ref: "ubuntu:24.04", variant: default, roles: [floating]}
+      - {ref: "ubuntu:20.04", variant: default, roles: [eol]}
+
+  alpine:
+    tags:
+      - {ref: "alpine:3.20", variant: alpine, roles: [floating]}
+      - {ref: "alpine:3.17", variant: alpine, roles: [eol]}
