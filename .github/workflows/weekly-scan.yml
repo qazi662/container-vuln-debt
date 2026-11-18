@@ -53,7 +53,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Restore SBOM cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: data/sboms
           key: sboms-${{ github.run_id }}
