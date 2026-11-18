@@ -1,7 +1,8 @@
 """DuckDB views over the committed data files, for the CLI and the analysis scripts.
 
 Views:
-  findings  all data/findings/*.parquet
+  findings_all  all data/findings/*.parquet, exactly as scanned
+  findings      findings_all minus Linux kernel header/image packages (see KERNEL_PKG_SQL)
   digests   data/state/digests.csv
   scans     data/state/scans.csv (n_findings cast to INTEGER)
   images    one row per (date, ref, scanner) that scanned OK, with app/variant/roles,
@@ -16,6 +17,14 @@ import duckdb
 
 from .util import data_dir
 
+# Kernel CVEs matched against kernel header/image packages (mainly linux-libc-dev in full Debian
+# images) do not apply inside a container, which runs on the host's kernel. Grype ignores these
+# packages by default and Trivy does not, so they are excluded from analysis but kept in raw data.
+KERNEL_PKG_SQL = (
+    "pkg_name = 'linux-libc-dev' OR pkg_name LIKE 'linux-headers-%' "
+    "OR pkg_name LIKE 'linux-image-%' OR pkg_name LIKE 'linux-kbuild-%'"
+)
+
 
 def connect(base: Path | None = None) -> duckdb.DuckDBPyConnection:
     base = base or data_dir()
@@ -23,7 +32,8 @@ def connect(base: Path | None = None) -> duckdb.DuckDBPyConnection:
     findings_glob = base / "findings" / "*.parquet"
     if not list((base / "findings").glob("*.parquet")):
         raise SystemExit(f"no findings yet in {base / 'findings'}; run `cvd run` first")
-    con.execute(f"CREATE VIEW findings AS SELECT * FROM read_parquet('{findings_glob}', union_by_name=true)")
+    con.execute(f"CREATE VIEW findings_all AS SELECT * FROM read_parquet('{findings_glob}', union_by_name=true)")
+    con.execute(f"CREATE VIEW findings AS SELECT * FROM findings_all WHERE NOT ({KERNEL_PKG_SQL})")
     con.execute(
         f"CREATE VIEW digests AS SELECT * FROM read_csv('{base / 'state' / 'digests.csv'}', "
         "header=true, all_varchar=true)"

@@ -22,6 +22,10 @@ The image list is frozen after the baseline scan. Platform: linux/amd64.
 5. **Normalize.** One row per (vulnerability, package, version). Grype GHSA ids are mapped to CVE ids through related vulnerabilities so the scanners can be compared. Grype "Negligible" maps to LOW. Trivy `not_affected` findings are dropped.
 6. **Enrich.** CISA KEV membership and FIRST EPSS score per CVE, cached per run date.
 
+## Exclusion: kernel header packages
+
+Full Debian images (e.g. `node:22`, built on buildpack-deps) ship `linux-libc-dev`, the Linux kernel headers. Trivy matches every Linux kernel CVE against it (6,000 to 7,300 unique CVEs per node image on Nov 18, 2026, about 85% of Trivy's findings), while Grype ignores kernel header packages by default. A container runs on the host's kernel, so these CVEs do not describe risk inside the image. The `findings` view used by all analysis excludes `linux-libc-dev`, `linux-headers-*`, `linux-image-*` and `linux-kbuild-*`; the raw data and the `findings_all` view keep them, and RQ1 reports how many were excluded.
+
 ## Metrics
 
 | RQ | Metric |

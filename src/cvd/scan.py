@@ -6,8 +6,13 @@ import json
 import os
 import shutil
 import subprocess
+import threading
 
 SCANNERS = ("trivy", "grype")
+
+# Trivy locks its local cache, so two Trivy processes at once fail with
+# "cache may be in use by another process". Grype has no such lock and runs in parallel.
+_TRIVY_LOCK = threading.Lock()
 
 
 class ScanError(RuntimeError):
@@ -73,7 +78,11 @@ def scan_image(scanner: str, image: str, platform: str) -> dict:
         cmd = ["grype", f"registry:{image}", "--platform", platform, "-o", "json", "-q"]
     else:
         raise ValueError(f"unknown scanner {scanner}")
-    r = _run(cmd, timeout=1800, env=env)
+    if scanner == "trivy":
+        with _TRIVY_LOCK:
+            r = _run(cmd, timeout=1800, env=env)
+    else:
+        r = _run(cmd, timeout=1800, env=env)
     if r.returncode != 0:
         raise ScanError(f"{scanner} failed: {r.stderr.strip()[-1500:]}")
     return json.loads(r.stdout)

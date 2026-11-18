@@ -7,6 +7,7 @@
 import matplotlib.pyplot as plt
 
 from common import PRIMARY, SEV_COLORS, save, setup
+from cvd.store import KERNEL_PKG_SQL
 
 con, date = setup()
 print(f"scan date {date}, scanner {PRIMARY}")
@@ -53,6 +54,17 @@ print(f"unique CVEs across all images: {overall.unique_cves}")
 print(f"  with a fix available: {overall.fixable} ({overall.fixable / u:.0%})")
 print(f"  in CISA KEV: {overall.kev} ({overall.kev / u:.1%})")
 print(f"  EPSS >= 0.1: {overall.epss_ge_01} ({overall.epss_ge_01 / u:.1%})")
+
+kern = con.execute(
+    f"""
+    SELECT count(DISTINCT vuln_id) FILTER (WHERE {KERNEL_PKG_SQL}) AS kernel,
+           count(DISTINCT vuln_id) AS all_cves
+    FROM findings_all WHERE date = ? AND scanner = ?
+    """,
+    [date, PRIMARY],
+).df().iloc[0]
+print(f"kernel header CVEs excluded from analysis: {kern.kernel} of {kern.all_cves} raw unique CVEs "
+      f"({kern.kernel / max(int(kern.all_cves), 1):.0%})")
 
 by_class = con.execute(
     """
