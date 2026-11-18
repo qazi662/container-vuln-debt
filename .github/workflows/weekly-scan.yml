@@ -21,9 +21,9 @@ env:
   # Before the baseline scan, set these to the latest releases, then leave them frozen for the study:
   #   https://github.com/anchore/syft/releases  https://github.com/anchore/grype/releases
   #   https://github.com/aquasecurity/trivy/releases
-  SYFT_VERSION: v1.18.1
-  GRYPE_VERSION: v0.86.1
-  TRIVY_VERSION: v0.58.1
+  SYFT_VERSION: v1.55.0
+  GRYPE_VERSION: v0.121.0
+  TRIVY_VERSION: v0.76.1
 
 jobs:
   scan:

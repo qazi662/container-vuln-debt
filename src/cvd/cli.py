@@ -49,32 +49,6 @@ def cmd_suggest(args) -> int:
     return 0
 
 
-def cmd_validate_sbom(args) -> int:
-    """Compare SBOM based Trivy results with a direct Trivy image scan on a sample of images."""
-    from .normalize import normalize_trivy
-    from .registry import parse_ref
-    from .scan import scan_image_direct
-    from .store import connect, latest_date
-
-    con = connect()
-    date = latest_date(con)
-    sample = con.execute(
-        "SELECT DISTINCT i.ref, i.index_digest, d.platform FROM images i JOIN digests d "
-        "ON d.date = i.date AND d.ref = i.ref WHERE i.date = ? AND i.scanner = 'trivy' "
-        "ORDER BY hash(i.ref) LIMIT ?", [date, args.sample]).fetchall()
-    for ref, digest, platform in sample:
-        sbom_ids = {r[0] for r in con.execute(
-            "SELECT DISTINCT vuln_id FROM findings WHERE date = ? AND ref = ? AND scanner = 'trivy'",
-            [date, ref]).fetchall()}
-        direct = scan_image_direct(parse_ref(ref).with_digest(digest), platform)
-        direct_ids = {r["vuln_id"] for r in normalize_trivy(direct)}
-        union = sbom_ids | direct_ids
-        jac = len(sbom_ids & direct_ids) / len(union) if union else 1.0
-        print(f"{ref:<55} sbom={len(sbom_ids):>4} direct={len(direct_ids):>4} "
-              f"only_direct={len(direct_ids - sbom_ids):>3} jaccard={jac:.2f}")
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="cvd", description="Container vulnerability debt measurement")
     p.add_argument("--config", default="config/images.yaml")
@@ -99,10 +73,6 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("ref", help="a tracked tag, e.g. node:22")
     s.add_argument("--scanner", default="trivy", choices=["trivy", "grype"])
     s.set_defaults(func=cmd_suggest)
-
-    s = sub.add_parser("validate-sbom", help="SBOM scan vs direct image scan on a sample")
-    s.add_argument("--sample", type=int, default=5)
-    s.set_defaults(func=cmd_validate_sbom)
 
     args = p.parse_args(argv)
     return args.func(args)

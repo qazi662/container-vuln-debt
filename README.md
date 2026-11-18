@@ -2,7 +2,7 @@
 
 **How much known vulnerability debt do popular container images carry, and how much of it comes from choices you control: base variant, tag, and scanner?**
 
-An automated weekly measurement of Docker Official Images. Each run resolves every tag to its digest, builds an SBOM for new digests with Syft, scans every SBOM with both Trivy and Grype, adds exploit signals from CISA KEV and EPSS, and commits the results.
+An automated weekly measurement of Docker Official Images. Each run resolves every tag to its digest, records a Syft SBOM for new digests, scans every image with both Trivy and Grype, adds exploit signals from CISA KEV and EPSS, and commits the results.
 
 > Status: in progress (CPEG697 Advanced Cybersecurity term project, University of Delaware, Fall 2026). Findings land here in December 2026.
 
@@ -22,9 +22,9 @@ config/images.yaml
       |
   resolve tag -> digest (registry HEAD, no pull)
       |
-  new digest? -> syft SBOM (CycloneDX, cached in data/sboms)
+  new digest? -> syft SBOM (package inventory, cached in data/sboms)
       |
-  trivy sbom + grype sbom   (same package list, fresh DBs each run)
+  trivy image + grype registry:  (each image by digest, fresh DBs each run)
       |
   normalize -> one schema   (CVE ids, severity, fix state, OS vs language package)
       |
@@ -33,7 +33,7 @@ config/images.yaml
   data/findings/<date>.parquet + data/state/*.csv  -> DuckDB -> analysis/ and `cvd` CLI
 ```
 
-Why SBOM first: each image is pulled only when its digest changes, and both scanners read exactly the same package inventory, so differences between them come from their vulnerability data, not from package detection.
+Why direct scans: the first design had both scanners read one shared Syft SBOM. Validation showed Trivy missed most OS findings in SBOMs of distroless images (2 findings vs 99 when scanning the image directly), so each scanner now catalogs the image itself, the way teams actually run them. Scans are pinned to the digest resolved that day, so both tools see the exact same image.
 
 ## Quick start (macOS)
 
@@ -57,7 +57,7 @@ cvd summary
 cvd run                            # all images (baseline scan 1)
 ```
 
-No Docker daemon is needed for scanning; Syft pulls image layers straight from the registry.
+No Docker daemon is needed: Syft, Trivy and Grype all pull image layers straight from the registry.
 
 ## Commands
 
@@ -67,7 +67,6 @@ No Docker daemon is needed for scanning; Syft pulls image layers straight from t
 | `cvd run [--only APP ...] [--date YYYY-MM-DD]` | Full run: resolve, SBOM, scan with both scanners, enrich, save |
 | `cvd summary [--scanner grype]` | Per image table for the latest scan |
 | `cvd suggest node:22` | Rank tracked tags of the same app by critical/high findings |
-| `cvd validate-sbom --sample 5` | Compare SBOM based results with a direct `trivy image` scan |
 
 ## Analysis
 

@@ -16,9 +16,9 @@ The image list is frozen after the baseline scan. Platform: linux/amd64.
 ## Collection (weekly)
 
 1. **Resolve.** HEAD request on the registry manifest endpoint returns the tag's current index digest. HEAD requests do not count toward Docker Hub pull limits.
-2. **SBOM.** For digests not seen before, `syft scan registry:<image>@<digest> --platform linux/amd64 -o cyclonedx-json`. SBOMs are cached by (platform, digest).
+2. **SBOM inventory.** For digests not seen before, `syft scan registry:<image>@<digest> --platform linux/amd64 -o cyclonedx-json`. SBOMs are cached by (platform, digest) and used for package counts; they are not the scan input.
 3. **Databases.** Trivy and Grype databases are updated once at the start of each run; every scan in that run uses the same snapshot. Tool and DB versions are saved to `data/state/versions/<date>.json`.
-4. **Scan.** `trivy sbom` and `grype sbom:` on the same SBOM file.
+4. **Scan.** Each image is scanned by digest with `trivy image --image-src remote` and `grype registry:`, so both tools see the exact same image and each uses its own package cataloger.
 5. **Normalize.** One row per (vulnerability, package, version). Grype GHSA ids are mapped to CVE ids through related vulnerabilities so the scanners can be compared. Grype "Negligible" maps to LOW. Trivy `not_affected` findings are dropped.
 6. **Enrich.** CISA KEV membership and FIRST EPSS score per CVE, cached per run date.
 
@@ -35,7 +35,7 @@ Primary scanner for RQ1 to RQ3 is Trivy; RQ1 to RQ3 are repeated with Grype as a
 
 ## Validity checks
 
-- `cvd validate-sbom` compares SBOM based Trivy results with a direct `trivy image` scan on a sample. Large gaps would mean SBOM scanning misses findings.
+- SBOM vs direct scanning (Oct 28 and Nov 18, 2026): with Trivy reading a Syft CycloneDX SBOM, `gcr.io/distroless/nodejs22-debian12` produced 2 findings (Debian LTS advisory ids only); a direct `trivy image` scan of the same image produced 99, matching Grype's CVE ids. Debian and Alpine images were not affected the same way, but the study switched to direct scans for both tools so results reflect each scanner as teams use it.
 - Images with zero findings are counted through `data/state/scans.csv`, so averages are not biased upward.
 - Scanner and DB versions are recorded per run.
 

@@ -1,4 +1,5 @@
-"""One weekly run: resolve -> SBOM (new digests only) -> scan with both scanners -> normalize -> enrich -> save.
+"""One weekly run: resolve -> SBOM inventory (new digests only) -> scan each image with both scanners
+-> normalize -> enrich -> save.
 
 Outputs (committed to git, small):
   data/state/digests.csv          one row per (date, ref): digest or missing/error status
@@ -6,7 +7,7 @@ Outputs (committed to git, small):
   data/state/versions/<date>.json scanner and database versions used that day
   data/findings/<date>.parquet    all normalized, enriched findings for that day
 Outputs (not committed, large):
-  data/sboms/                     cached SBOMs, reused until a tag's digest changes
+  data/sboms/                     cached SBOMs (package inventory), reused until a tag's digest changes
   data/raw/<date>/<scanner>/      raw scanner JSON (uploaded as a CI artifact)
 """
 
@@ -21,7 +22,7 @@ from . import scan as scanner_mod
 from .config import Target, load_config
 from .enrich import enrich
 from .normalize import FINDING_COLUMNS, normalize
-from .registry import Resolver
+from .registry import Resolver, parse_ref
 from .sbom import build_sbom
 from .util import data_dir, safe_name, today_utc, upsert_csv, write_json_gz
 
@@ -64,19 +65,19 @@ def run(config_path: str = "config/images.yaml", date: str | None = None, only: 
     upsert_csv(state / "digests.csv", digest_rows, key=["date", "ref"])
     resolved = [r for r in digest_rows if r["status"] == "ok"]
 
-    print(f"[2/5] building SBOMs for new digests ({len(resolved)} resolved)")
-    sboms, scan_log = {}, []
+    print(f"[2/5] building SBOM inventory for new digests ({len(resolved)} resolved)")
+    scan_log = []
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futs = {pool.submit(build_sbom, r["ref"], r["index_digest"], platform): r for r in resolved}
         for fut in as_completed(futs):
             r = futs[fut]
             try:
-                sboms[r["ref"]] = fut.result()
+                fut.result()
             except Exception as exc:  # noqa: BLE001
+                # inventory only: a failed SBOM does not stop the vulnerability scans
                 print(f"  sbom FAILED {r['ref']}: {exc}")
-                for s in scanner_mod.SCANNERS:
-                    scan_log.append({"date": date, "ref": r["ref"], "scanner": s, "status": "sbom-error",
-                                     "n_findings": "", "error": str(exc)[:300]})
+                scan_log.append({"date": date, "ref": r["ref"], "scanner": "syft", "status": "sbom-error",
+                                 "n_findings": "", "error": str(exc)[:300]})
 
     print("[3/5] updating vulnerability databases")
     if update_db:
@@ -85,17 +86,17 @@ def run(config_path: str = "config/images.yaml", date: str | None = None, only: 
     versions_path.parent.mkdir(parents=True, exist_ok=True)
     versions_path.write_text(json.dumps(scanner_mod.tool_versions(), indent=2, default=str))
 
-    print(f"[4/5] scanning {len(sboms)} SBOMs with {', '.join(scanner_mod.SCANNERS)}")
+    print(f"[4/5] scanning {len(resolved)} images with {', '.join(scanner_mod.SCANNERS)}")
     frames = []
     digest_of = {r["ref"]: r["index_digest"] for r in resolved}
 
     def do_scan(ref: str, scanner: str):
-        report = scanner_mod.scan_sbom(scanner, sboms[ref])
+        report = scanner_mod.scan_image(scanner, parse_ref(ref).with_digest(digest_of[ref]), platform)
         write_json_gz(data_dir() / "raw" / date / scanner / f"{safe_name(ref)}.json.gz", report)
         return normalize(scanner, report)
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futs = {pool.submit(do_scan, ref, s): (ref, s) for ref in sboms for s in scanner_mod.SCANNERS}
+        futs = {pool.submit(do_scan, ref, s): (ref, s) for ref in digest_of for s in scanner_mod.SCANNERS}
         for fut in as_completed(futs):
             ref, s = futs[fut]
             t = by_ref[ref]
