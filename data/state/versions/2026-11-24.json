@@ -1,0 +1,47 @@
+{
+  "syft": {
+    "application": "syft",
+    "buildDate": "2026-10-19T18:54:46Z",
+    "compiler": "gc",
+    "gitCommit": "f15c3343e29dfb20cf6d82c820e7090b49808c96",
+    "gitDescription": "v1.55.0",
+    "goVersion": "go1.26.8",
+    "platform": "linux/amd64",
+    "schemaVersion": "16.1.11",
+    "version": "1.55.0"
+  },
+  "trivy": {
+    "Version": "0.76.1",
+    "VulnerabilityDB": {
+      "Version": 2,
+      "NextUpdate": "2026-11-24T19:02:50.412494606Z",
+      "UpdatedAt": "2026-11-23T19:02:50.412495Z",
+      "DownloadedAt": "2026-11-24T00:52:34.530795102Z"
+    },
+    "JavaDB": {
+      "Version": 1,
+      "NextUpdate": "2026-11-26T00:59:57.071587529Z",
+      "UpdatedAt": "2026-11-23T00:59:57.07158813Z",
+      "DownloadedAt": "2026-11-24T00:52:56.287396718Z"
+    }
+  },
+  "grype": {
+    "application": "grype",
+    "buildDate": "2026-10-19T20:26:34Z",
+    "compiler": "gc",
+    "gitCommit": "afe2742527d98d822da06c9f32eed86fe3d193e0",
+    "gitDescription": "v0.121.0",
+    "goVersion": "go1.26.8",
+    "platform": "linux/amd64",
+    "supportedDbSchema": 6,
+    "syftVersion": "v1.55.0",
+    "version": "0.121.0"
+  },
+  "grype_db": {
+    "schemaVersion": "v6.1.10",
+    "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.10_2026-11-23T00:24:20Z_1795415312.tar.zst?checksum=sha256%3A3d24f57cd3587e2c73f686decc7ad04b213d1f3575bcf1dd847e42df94560f14",
+    "built": "2026-11-23T06:28:32Z",
+    "path": "/home/runner/.cache/grype/db/6/vulnerability.db",
+    "valid": true
+  }
+}
